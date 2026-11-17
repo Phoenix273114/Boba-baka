@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="lv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boba Bāka bubble tea</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Manrope:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: one pinned stage where a single cup tumbles through five colour worlds as you scroll; plain sections follow. Single theme by choice. */
+:root{
+  --ink:#1B1210;
+  --cream:#FFF4E4;
+  --pink:#FF4F86;
+  --pearl:#2A1710;
+  --sun:#FFB800;
+  --bg:#FF4F86;      /* animated by script */
+  --fg:#FFF4E4;      /* animated by script */
+  --liq:#FFC9D6;     /* animated by script */
+  --liq2:#FF9DB6;    /* animated by script */
+  --display:"Unbounded","Arial Black",Impact,sans-serif;
+  --body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--cream);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:clip}
+h1,h2,h3,p{margin:0}
+a{color:inherit}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--sun);outline-offset:3px}
+
+/* nav */
+.nav{position:fixed;inset:0 0 auto 0;z-index:50;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px clamp(16px,4vw,48px);color:var(--navfg,#FFF4E4);transition:background .3s}
+.nav.solid{background:var(--cream);color:var(--ink);border-bottom:2px solid var(--ink)}
+.logo{font-family:var(--display);font-weight:900;font-size:18px;letter-spacing:-.02em;text-decoration:none;white-space:nowrap}
+.nav-links{display:flex;gap:28px;font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:.06em}
+.nav-links a{text-decoration:none}
+.nav-links a:hover{text-decoration:underline;text-underline-offset:6px}
+.lang{display:flex;gap:2px}
+.lang button{background:none;border:2px solid transparent;border-radius:999px;padding:8px 11px;min-height:40px;font-weight:700;font-size:13px;letter-spacing:.05em}
+.lang button[aria-pressed="true"]{border-color:currentColor}
+@media (max-width:820px){.nav-links{display:none}}
+
+/* stage */
+.stage{height:520vh;position:relative;background:var(--bg)}
+.pin{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;background:var(--bg);color:var(--fg)}
+.pearl{position:absolute;border-radius:50%;background:var(--pearl);box-shadow:inset -6px -6px 0 rgba(255,255,255,.08),inset 5px 5px 0 rgba(255,255,255,.14);will-change:transform}
+.cup-wrap{position:absolute;left:50%;top:52%;width:0;height:0;z-index:2;will-change:transform}
+.cup{position:absolute;height:min(56svh,520px);aspect-ratio:260/440;left:0;top:0;transform:translate(-50%,-50%);filter:drop-shadow(0 30px 30px rgba(0,0,0,.25))}
+.scene{position:absolute;inset:0;padding:84px clamp(16px,4vw,48px) clamp(20px,4vh,44px);display:flex;flex-direction:column;justify-content:space-between;gap:16px;pointer-events:none;will-change:opacity,transform}
+.scene.on{pointer-events:auto}
+.scene>*{position:relative}
+.scene .top{z-index:3}
+.scene .bottom{z-index:3}
+.ghost{position:absolute;left:0;top:50%;z-index:1;font-family:var(--display);font-weight:900;font-size:34vw;line-height:.8;white-space:nowrap;opacity:.13;transform:translateY(-50%);will-change:transform;pointer-events:none}
+.hero-h{font-family:var(--display);font-weight:900;font-size:clamp(44px,9.4vw,150px);line-height:.92;letter-spacing:-.04em;text-transform:uppercase}
+.hero-b{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:20px}
+.hero-b p{max-width:30ch;font-weight:500;font-size:clamp(16px,1.5vw,20px)}
+.btns{display:flex;flex-wrap:wrap;gap:10px}
+.btn{display:inline-flex;align-items:center;gap:10px;min-height:52px;padding:0 26px;border-radius:999px;border:2px solid currentColor;background:none;font-family:var(--display);font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.03em;text-decoration:none;transition:transform .2s}
+.btn:hover{transform:translateY(-3px)}
+.btn.solid{background:var(--ink);color:var(--cream);border-color:var(--ink)}
+.num{font-family:var(--display);font-weight:500;font-size:14px;letter-spacing:.1em;margin-bottom:10px}
+.fl-h{font-family:var(--display);font-weight:900;font-size:clamp(38px,8.4vw,128px);line-height:.92;letter-spacing:-.04em;text-transform:uppercase;max-width:9ch}
+.fl-b{display:flex;flex-direction:column;gap:14px;max-width:400px}
+.fl-b p{font-weight:500}
+.fl-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.price{font-family:var(--display);font-weight:900;font-size:clamp(28px,3.4vw,44px);font-variant-numeric:tabular-nums}
+.tag{border:2px solid currentColor;border-radius:999px;padding:6px 14px;font-weight:700;font-size:13px}
+.dots{position:absolute;right:clamp(12px,2.4vw,32px);top:50%;transform:translateY(-50%);z-index:4;display:flex;flex-direction:column;gap:10px}
+.dots i{width:8px;height:8px;border-radius:50%;border:2px solid var(--fg);transition:height .3s,background .3s}
+.dots i.on{background:var(--fg);height:26px;border-radius:8px}
+
+/* marquee */
+.marq{background:var(--ink);color:var(--cream);overflow:hidden;padding:18px 0;font-family:var(--display);font-weight:700;font-size:clamp(18px,3vw,34px);text-transform:uppercase;white-space:nowrap}
+.marq div{display:inline-block;animation:slide 26s linear infinite}
+.marq span{margin:0 22px}
+.marq b{color:var(--sun);font-weight:700}
+@keyframes slide{to{transform:translateX(-50%)}}
+
+/* sections */
+.sec{padding:clamp(64px,10vw,140px) clamp(16px,4vw,48px)}
+.wrap{max-width:1240px;margin:0 auto}
+.eyebrow{font-family:var(--display);font-weight:500;font-size:13px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:16px}
+.h2{font-family:var(--display);font-weight:900;font-size:clamp(36px,7vw,104px);line-height:.95;letter-spacing:-.04em;text-transform:uppercase;text-wrap:balance}
+.menu-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:24px;margin-bottom:36px}
+.tabs{display:flex;flex-wrap:wrap;gap:8px}
+.tabs button{min-height:46px;padding:0 20px;border-radius:999px;border:2px solid var(--ink);background:none;font-weight:700;font-size:15px}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--cream)}
+.items{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.item{display:flex;flex-direction:column;justify-content:space-between;gap:26px;min-height:190px;padding:22px;border-radius:26px;background:#fff;border:2px solid var(--ink);transition:transform .25s,box-shadow .25s}
+.item:hover{transform:translate(-4px,-4px);box-shadow:8px 8px 0 var(--ink)}
+.item h3{font-family:var(--display);font-weight:700;font-size:19px;line-height:1.15;letter-spacing:-.02em}
+.item p{font-size:15px;margin-top:8px;color:#5a4a44}
+.item .foot{display:flex;align-items:center;justify-content:space-between}
+.item .foot b{font-family:var(--display);font-size:20px;font-variant-numeric:tabular-nums}
+.swatch{width:34px;height:34px;border-radius:50%;border:2px solid var(--ink)}
+.note{margin-top:22px;font-size:14px;color:#5a4a44}
+
+.how{background:var(--ink);color:var(--cream)}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:44px}
+.step{padding:26px;border-radius:26px;border:2px solid rgba(255,244,228,.3);display:flex;flex-direction:column;gap:14px}
+.step b{font-family:var(--display);font-weight:900;font-size:64px;line-height:1;color:var(--sun)}
+.step h3{font-family:var(--display);font-weight:700;font-size:20px;text-transform:uppercase}
+.step p{color:#e2d3c2}
+
+.visit{background:var(--sun)}
+.visit-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:44px}
+.card{padding:26px;border-radius:26px;background:var(--cream);border:2px solid var(--ink);display:flex;flex-direction:column;gap:12px}
+.card h3{font-family:var(--display);font-weight:700;font-size:15px;text-transform:uppercase;letter-spacing:.06em}
+.card p{overflow-wrap:anywhere}
+.card .big{font-family:var(--display);font-weight:700;font-size:clamp(20px,2.2vw,26px);line-height:1.2}
+.hours{display:grid;grid-template-columns:1fr auto;gap:6px 18px;font-weight:500;font-variant-numeric:tabular-nums}
+.open{display:inline-flex;align-items:center;gap:8px;font-weight:700;font-size:14px}
+.open::before{content:"";width:10px;height:10px;border-radius:50%;background:#1f9d55}
+.open.closed::before{background:#c0392b}
+.card .btn{align-self:flex-start;margin-top:auto}
+
+.foot-sec{background:var(--pink);color:var(--cream);padding:clamp(48px,8vw,100px) clamp(16px,4vw,48px) 28px;overflow:hidden}
+.foot-big{font-family:var(--display);font-weight:900;font-size:clamp(52px,17vw,280px);line-height:.85;letter-spacing:-.05em;text-transform:uppercase;white-space:nowrap}
+.foot-row{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;margin-top:36px;font-size:14px;font-weight:500}
+
+@media (max-width:820px){
+  .hero-h{font-size:clamp(40px,12.4vw,90px)}
+  .cup{height:min(42svh,380px)}
+  .cup-wrap{top:50%}
+  .hero-b p{max-width:none}
+  .dots{display:none}
+  .fl-b{max-width:none}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .marq div{animation:none}
+  .btn,.item{transition:none}
+}
+</style>
+</head>
+<body>
+
+<header class="nav">
+  <a class="logo" href="#top">BOBA BĀKA</a>
+  <nav class="nav-links" aria-label="Main">
+    <a href="#flavors" data-i="n1"></a>
+    <a href="#menu" data-i="n2"></a>
+    <a href="#how" data-i="n3"></a>
+    <a href="#visit" data-i="n4"></a>
+  </nav>
+  <div class="lang" role="group" aria-label="Language">
+    <button type="button" data-lang="lv" aria-pressed="true">LV</button>
+    <button type="button" data-lang="ru" aria-pressed="false">RU</button>
+    <button type="button" data-lang="en" aria-pressed="false">EN</button>
+  </div>
+</header>
+
+<main id="top">
+<section class="stage" id="flavors" aria-label="Flavors">
+  <div class="pin">
+    <span class="pearl" style="width:46px;height:46px;left:7%;top:24%" data-s="140"></span>
+    <span class="pearl" style="width:22px;height:22px;left:19%;top:68%" data-s="260"></span>
+    <span class="pearl" style="width:64px;height:64px;left:84%;top:16%" data-s="90"></span>
+    <span class="pearl" style="width:30px;height:30px;left:74%;top:78%" data-s="320"></span>
+    <span class="pearl" style="width:18px;height:18px;left:58%;top:12%" data-s="420"></span>
+    <span class="pearl" style="width:38px;height:38px;left:34%;top:88%" data-s="200"></span>
+    <span class="pearl" style="width:26px;height:26px;left:92%;top:54%" data-s="360"></span>
+
+    <div class="cup-wrap" id="cupWrap">
+      <svg class="cup" viewBox="0 0 260 440" role="img" aria-label="Bubble tea">
+        <defs>
+          <clipPath id="cc"><path d="M52 124 L208 124 L190 400 Q189 418 170 418 L90 418 Q71 418 70 400 Z"/></clipPath>
+          <linearGradient id="lg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" style="stop-color:var(--liq)"/>
+            <stop offset="1" style="stop-color:var(--liq2)"/>
+          </linearGradient>
+        </defs>
+        <rect x="136" y="6" width="22" height="150" rx="11" transform="rotate(7 147 200)" fill="#1B1210"/>
+        <path d="M52 124 L208 124 L190 400 Q189 418 170 418 L90 418 Q71 418 70 400 Z" fill="rgba(255,255,255,.28)"/>
+        <g clip-path="url(#cc)">
+          <rect x="40" y="158" width="180" height="270" fill="url(#lg)"/>
+          <rect x="136" y="100" width="22" height="290" rx="11" transform="rotate(7 147 200)" fill="#1B1210" opacity=".45"/>
+          <ellipse cx="130" cy="158" rx="84" ry="9" fill="#fff" opacity=".55"/>
+          <g fill="#fff" opacity=".4">
+            <rect x="74" y="172" width="40" height="40" rx="8" transform="rotate(-14 94 192)"/>
+            <rect x="150" y="184" width="36" height="36" rx="8" transform="rotate(18 168 202)"/>
+            <rect x="108" y="212" width="34" height="34" rx="8" transform="rotate(8 125 229)"/>
+          </g>
+          <g fill="#2A1710">
+            <circle cx="88" cy="402" r="12"/><circle cx="114" cy="405" r="12"/><circle cx="141" cy="404" r="12"/><circle cx="168" cy="402" r="12"/>
+            <circle cx="82" cy="379" r="12"/><circle cx="107" cy="382" r="12"/><circle cx="133" cy="381" r="12"/><circle cx="159" cy="380" r="12"/><circle cx="183" cy="377" r="12"/>
+            <circle cx="95" cy="358" r="12"/><circle cx="121" cy="359" r="12"/><circle cx="147" cy="357" r="12"/><circle cx="172" cy="355" r="12"/>
+            <circle cx="110" cy="336" r="11"/><circle cx="160" cy="333" r="11"/>
+          </g>
+          <g fill="#fff" opacity=".35">
+            <circle cx="84" cy="398" r="3"/><circle cx="110" cy="401" r="3"/><circle cx="137" cy="400" r="3"/><circle cx="164" cy="398" r="3"/>
+            <circle cx="103" cy="378" r="3"/><circle cx="129" cy="377" r="3"/><circle cx="155" cy="376" r="3"/><circle cx="117" cy="355" r="3"/><circle cx="143" cy="353" r="3"/>
+          </g>
+        </g>
+        <circle cx="130" cy="272" r="40" fill="#FFF4E4"/>
+        <circle cx="130" cy="272" r="33" fill="none" stroke="#1B1210" stroke-width="2"/>
+        <text x="130" y="268" text-anchor="middle" font-family="Unbounded,Arial Black,sans-serif" font-weight="900" font-size="15" fill="#1B1210">BOBA</text>
+        <text x="130" y="286" text-anchor="middle" font-family="Unbounded,Arial Black,sans-serif" font-weight="900" font-size="15" fill="#1B1210">BĀKA</text>
+        <path d="M52 124 L208 124 L190 400 Q189 418 170 418 L90 418 Q71 418 70 400 Z" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width="4"/>
+        <path d="M70 146 L84 384" stroke="#fff" stroke-opacity=".6" stroke-width="7" stroke-linecap="round"/>
+        <path d="M46 122 Q48 78 130 78 Q212 78 214 122 Z" fill="rgba(255,255,255,.4)" stroke="#fff" stroke-opacity=".75" stroke-width="4"/>
+        <rect x="38" y="114" width="184" height="18" rx="9" fill="#FFF4E4"/>
+      </svg>
+    </div>
+
+    <div class="scene" data-k="0">
+      <div class="ghost">BOBA</div>
+      <div class="top"><h1 class="hero-h" data-i="h"></h1></div>
+      <div class="bottom hero-b">
+        <p data-i="hs"></p>
+        <div class="btns"><a class="btn solid" href="#menu" data-i="b1"></a><a class="btn" href="#visit" data-i="b2"></a></div>
+      </div>
+    </div>
+
+    <div class="scene" data-k="1">
+      <div class="ghost">TARO</div>
+      <div class="top"><div class="num">01 / 04</div><h2 class="fl-h" data-i="f1n"></h2></div>
+      <div class="bottom fl-b"><p data-i="f1d"></p><div class="fl-row"><span class="price">€5,20</span><span class="tag" data-i="f1t"></span></div></div>
+    </div>
+    <div class="scene" data-k="2">
+      <div class="ghost">MATCHA</div>
+      <div class="top"><div class="num">02 / 04</div><h2 class="fl-h" data-i="f2n"></h2></div>
+      <div class="bottom fl-b"><p data-i="f2d"></p><div class="fl-row"><span class="price">€5,60</span><span class="tag" data-i="f2t"></span></div></div>
+    </div>
+    <div class="scene" data-k="3">
+      <div class="ghost">MANGO</div>
+      <div class="top"><div class="num">03 / 04</div><h2 class="fl-h" data-i="f3n"></h2></div>
+      <div class="bottom fl-b"><p data-i="f3d"></p><div class="fl-row"><span class="price">€4,90</span><span class="tag" data-i="f3t"></span></div></div>
+    </div>
+    <div class="scene" data-k="4">
+      <div class="ghost">TIGER</div>
+      <div class="top"><div class="num">04 / 04</div><h2 class="fl-h" data-i="f4n"></h2></div>
+      <div class="bottom fl-b"><p data-i="f4d"></p><div class="fl-row"><span class="price">€5,40</span><span class="tag" data-i="f4t"></span></div></div>
+    </div>
+
+    <div class="dots" aria-hidden="true"><i class="on"></i><i></i><i></i><i></i><i></i></div>
+  </div>
+</section>
+
+<div class="marq" aria-hidden="true"><div id="marq"></div></div>
+
+<section class="sec" id="menu">
+  <div class="wrap">
+    <div class="menu-head">
+      <div><p class="eyebrow" data-i="me"></p><h2 class="h2" data-i="mh"></h2></div>
+      <div class="tabs" role="tablist" id="tabs"></div>
+    </div>
+    <div class="items" id="items"></div>
+    <p class="note" data-i="mn"></p>
+  </div>
+</section>
+
+<section class="sec how" id="how">
+  <div class="wrap">
+    <p class="eyebrow" data-i="he"></p>
+    <h2 class="h2" data-i="hh"></h2>
+    <div class="steps">
+      <div class="step"><b>1</b><h3 data-i="s1h"></h3><p data-i="s1p"></p></div>
+      <div class="step"><b>2</b><h3 data-i="s2h"></h3><p data-i="s2p"></p></div>
+      <div class="step"><b>3</b><h3 data-i="s3h"></h3><p data-i="s3p"></p></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec visit" id="visit">
+  <div class="wrap">
+    <p class="eyebrow" data-i="ve"></p>
+    <h2 class="h2" data-i="vh"></h2>
+    <div class="visit-grid">
+      <div class="card">
+        <h3 data-i="c1"></h3>
+        <p class="big">Tērbatas iela 00,<br>Rīga, LV-1011</p>
+        <p data-i="c1p"></p>
+        <a class="btn solid" href="#visit" data-i="c1b"></a>
+      </div>
+      <div class="card">
+        <h3 data-i="c2"></h3>
+        <div class="hours"><span data-i="d1"></span><span>9:00–21:00</span><span data-i="d2"></span><span>10:00–22:00</span></div>
+        <span class="open" id="open"></span>
+      </div>
+      <div class="card">
+        <h3 data-i="c3"></h3>
+        <p class="big">+371 20 000 000<br>sveiki@bobabaka.example</p>
+        <p data-i="c3p"></p>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="foot-sec">
+  <div class="foot-big">BOBA BĀKA</div>
+  <div class="foot-row"><span>© 2026 Boba Bāka</span><span data-i="demo"></span><span>Instagram · TikTok · Wolt</span></div>
+</footer>
+
+<script>
+const T={
+lv:{n1:"Garšas",n2:"Ēdienkarte",n3:"Kā top",n4:"Atrodi mūs",
+h:"Dzēriens,<br>ko var<br>košļāt",hs:"Svaigi vārīta tēja, pašu gatavotas tapiokas pērles un labs garastāvoklis vienā glāzē. Pašā Rīgas centrā.",b1:"Skatīt ēdienkarti",b2:"Kā mūs atrast",
+f1n:"Taro mākonis",f1d:"Krēmīgs taro ar svaigu pienu un siltām brūnā cukura pērlēm. Violets, maigs un bīstami garšīgs.",f1t:"Bez kofeīna",
+f2n:"Matcha mežs",f2d:"Japāņu matcha, saputots piens un tapiokas pērles. Zaļš lādiņš visai dienai.",f2t:"Karsts vai auksts",
+f3n:"Mango saule",f3d:"Jasmīna zaļā tēja ar īstu mango biezeni un sprāgstošām marakujas pērlēm.",f3t:"Vegānisks",
+f4n:"Brūnais tīģeris",f4d:"Lēni karamelizēts brūnais cukurs, auksts piens un dubulta pērļu porcija.",f4t:"Pirktākais dzēriens",
+me:"Ēdienkarte",mh:"Izvēlies savu",mn:"Jebkuru dzērienu pagatavojam ar auzu vai kokosriekstu pienu. Saldumu un ledus daudzumu izvēlies pats.",
+he:"Kā tas top",hh:"Trīs soļi līdz glāzei",
+s1h:"Vārām tēju",s1p:"Beramo tēju vārām nelielās porcijās vairākas reizes dienā, lai tā vienmēr būtu svaiga.",
+s2h:"Gatavojam pērles",s2p:"Tapiokas pērles vārām uz vietas un turam siltā brūnā cukura sīrupā.",
+s3h:"Sakratām",s3p:"Tavu dzērienu sakratām ar ledu tieši pirms pasniegšanas. Saldumu izvēlies pats.",
+ve:"Atrodi mūs",vh:"Nāc ciemos",c1:"Adrese",c1p:"Piecas minūtes kājām no Vērmanes dārza.",c1b:"Atvērt kartē",
+c2:"Darba laiks",d1:"Pirmdiena–piektdiena",d2:"Sestdiena–svētdiena",c3:"Sazinies",c3p:"Rakstiet arī par dzērieniem pasākumiem un birojiem.",
+open:"Šobrīd atvērts",closed:"Šobrīd slēgts",demo:"Dizaina koncepts. Zīmols un cenas ir izdomātas.",
+marq:["Svaigas pērles katru dienu","Auzu piens bez piemaksas","Saldumu izvēlies pats","Līdzņemšanai un uz vietas"],
+tabs:["Piena tējas","Augļu tējas","Kafija","Piedevas"]},
+ru:{n1:"Вкусы",n2:"Меню",n3:"Как готовим",n4:"Где мы",
+h:"Напиток,<br>который<br>жуют",hs:"Свежезаваренный чай, жемчужины тапиоки собственного приготовления и хорошее настроение в одном стакане. В самом центре Риги.",b1:"Смотреть меню",b2:"Как нас найти",
+f1n:"Таро облако",f1d:"Сливочный таро со свежим молоком и тёплыми жемчужинами в коричневом сахаре. Нежный и опасно вкусный.",f1t:"Без кофеина",
+f2n:"Матча лес",f2d:"Японская матча, взбитое молоко и жемчужины тапиоки. Зелёный заряд на весь день.",f2t:"Горячий или холодный",
+f3n:"Манго солнце",f3d:"Жасминовый зелёный чай с настоящим пюре манго и лопающимися шариками маракуйи.",f3t:"Веганский",
+f4n:"Бурый тигр",f4d:"Медленно карамелизованный коричневый сахар, холодное молоко и двойная порция жемчужин.",f4t:"Самый популярный",
+me:"Меню",mh:"Выбери свой",mn:"Любой напиток готовим на овсяном или кокосовом молоке. Сладость и количество льда выбираешь ты.",
+he:"Как готовим",hh:"Три шага до стакана",
+s1h:"Завариваем чай",s1p:"Листовой чай завариваем небольшими порциями несколько раз в день, чтобы он всегда был свежим.",
+s2h:"Варим жемчужины",s2p:"Тапиоку варим на месте и держим в тёплом сиропе из коричневого сахара.",
+s3h:"Встряхиваем",s3p:"Напиток встряхиваем со льдом прямо перед подачей. Сладость выбираешь ты.",
+ve:"Где мы",vh:"Заходи в гости",c1:"Адрес",c1p:"Пять минут пешком от Верманского парка.",c1b:"Открыть на карте",
+c2:"Время работы",d1:"Понедельник–пятница",d2:"Суббота–воскресенье",c3:"Связаться",c3p:"Пишите и по поводу напитков для мероприятий и офисов.",
+open:"Сейчас открыто",closed:"Сейчас закрыто",demo:"Дизайн-концепт. Бренд и цены вымышлены.",
+marq:["Свежие жемчужины каждый день","Овсяное молоко без доплаты","Сладость выбираешь ты","С собой и в зале"],
+tabs:["Молочные чаи","Фруктовые чаи","Кофе","Добавки"]},
+en:{n1:"Flavors",n2:"Menu",n3:"How it's made",n4:"Find us",
+h:"A drink<br>you can<br>chew",hs:"Fresh-brewed tea, tapioca pearls cooked in-house and a good mood in one cup. Right in the centre of Riga.",b1:"See the menu",b2:"How to find us",
+f1n:"Taro cloud",f1d:"Creamy taro with fresh milk and warm brown sugar pearls. Purple, soft and dangerously good.",f1t:"Caffeine free",
+f2n:"Matcha forest",f2d:"Japanese matcha, frothed milk and tapioca pearls. A green boost for the whole day.",f2t:"Hot or iced",
+f3n:"Mango sun",f3d:"Jasmine green tea with real mango purée and popping passion fruit pearls.",f3t:"Vegan",
+f4n:"Brown tiger",f4d:"Slow-caramelised brown sugar, cold milk and a double portion of pearls.",f4t:"Best seller",
+me:"Menu",mh:"Pick yours",mn:"Any drink can be made with oat or coconut milk. You choose the sweetness and the ice.",
+he:"How it's made",hh:"Three steps to a cup",
+s1h:"We brew the tea",s1p:"Loose-leaf tea is brewed in small batches several times a day, so it is always fresh.",
+s2h:"We cook the pearls",s2p:"Tapioca pearls are cooked on site and kept in warm brown sugar syrup.",
+s3h:"We shake it",s3p:"Your drink is shaken with ice right before serving. You choose the sweetness.",
+ve:"Find us",vh:"Come by",c1:"Address",c1p:"Five minutes on foot from Vērmanes Garden.",c1b:"Open in maps",
+c2:"Opening hours",d1:"Monday–Friday",d2:"Saturday–Sunday",c3:"Contact",c3p:"Write to us about drinks for events and offices too.",
+open:"Open now",closed:"Closed now",demo:"Design concept. The brand and prices are fictional.",
+marq:["Fresh pearls every day","Oat milk at no extra cost","You choose the sweetness","Takeaway and dine-in"],
+tabs:["Milk teas","Fruit teas","Coffee","Toppings"]}
+};
+/* menu: [tab, price, colour, lv name, lv text, ru name, ru text, en name, en text] */
+const MENU=[
+[0,"4,50","#D9B48A","Klasiskā piena tēja","Melnā tēja, piens, tapiokas pērles","Классический молочный чай","Чёрный чай, молоко, жемчужины тапиоки","Classic milk tea","Black tea, milk, tapioca pearls"],
+[0,"5,20","#C9B6FF","Taro mākonis","Taro, svaigs piens, brūnā cukura pērles","Таро облако","Таро, свежее молоко, жемчужины в коричневом сахаре","Taro cloud","Taro, fresh milk, brown sugar pearls"],
+[0,"5,60","#B9DE8A","Matcha mežs","Matcha, saputots piens, pērles","Матча лес","Матча, взбитое молоко, жемчужины","Matcha forest","Matcha, frothed milk, pearls"],
+[0,"5,40","#C99062","Brūnais tīģeris","Brūnais cukurs, auksts piens, dubultas pērles","Бурый тигр","Коричневый сахар, холодное молоко, двойные жемчужины","Brown tiger","Brown sugar, cold milk, double pearls"],
+[0,"5,00","#F3C9A8","Taizemes tēja","Stipra tēja ar kondensēto pienu","Тайский чай","Крепкий чай со сгущённым молоком","Thai tea","Strong tea with condensed milk"],
+[1,"4,90","#FFD25E","Mango saule","Jasmīna tēja, mango, marakujas pērles","Манго солнце","Жасминовый чай, манго, шарики маракуйи","Mango sun","Jasmine tea, mango, passion fruit pearls"],
+[1,"4,90","#FF8FA8","Zemeņu vasara","Zaļā tēja, zemenes, zemeņu pērles","Клубничное лето","Зелёный чай, клубника, клубничные шарики","Strawberry summer","Green tea, strawberries, strawberry pearls"],
+[1,"4,70","#FFC58A","Persiku ūlongs","Ūlonga tēja, persiks, kokosriekstu želeja","Персиковый улун","Улун, персик, кокосовое желе","Peach oolong","Oolong tea, peach, coconut jelly"],
+[1,"4,60","#E9E36A","Citronu un laima tēja","Zaļā tēja, citrons, laims, piparmētra","Чай с лимоном и лаймом","Зелёный чай, лимон, лайм, мята","Lemon and lime tea","Green tea, lemon, lime, mint"],
+[2,"2,60","#5A3A2A","Espresso","Dubultā porcija","Эспрессо","Двойная порция","Espresso","Double shot"],
+[2,"3,90","#C8A27E","Latte","Karsts vai ar ledu","Латте","Горячий или со льдом","Latte","Hot or iced"],
+[2,"4,80","#B58A63","Boba latte","Ledus latte ar brūnā cukura pērlēm","Боба латте","Айс-латте с жемчужинами в коричневом сахаре","Boba latte","Iced latte with brown sugar pearls"],
+[2,"4,90","#A7C97A","Dirty matcha","Matcha latte ar espresso porciju","Dirty matcha","Матча латте с порцией эспрессо","Dirty matcha","Matcha latte with a shot of espresso"],
+[3,"0,60","#2A1710","Tapiokas pērles","Klasiskās, brūnā cukura sīrupā","Жемчужины тапиоки","Классические, в сиропе из коричневого сахара","Tapioca pearls","Classic, in brown sugar syrup"],
+[3,"0,70","#FF9A3D","Sprāgstošās pērles","Mango, zemene vai marakuja","Лопающиеся шарики","Манго, клубника или маракуйя","Popping pearls","Mango, strawberry or passion fruit"],
+[3,"0,60","#F4F1E8","Kokosriekstu želeja","Viegla un košļājama","Кокосовое желе","Лёгкое и жевательное","Coconut jelly","Light and chewy"],
+[3,"0,80","#FFF0C2","Siera putas","Sāļi salda krēmīga cepure","Сырная пенка","Сливочная солёно-сладкая шапка","Cheese foam","A creamy salty-sweet cap"]
+];
+let lang="lv",tab=0;
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+function renderMenu(){
+  const o={lv:3,ru:5,en:7}[lang];
+  $("#tabs").innerHTML=T[lang].tabs.map((t,i)=>`<button type="button" role="tab" aria-selected="${i===tab}" data-tab="${i}">${t}</button>`).join("");
+  $("#items").innerHTML=MENU.filter(m=>m[0]===tab).map(m=>`<article class="item"><div><h3>${m[o]}</h3><p>${m[o+1]}</p></div><div class="foot"><b>€${m[1]}</b><span class="swatch" style="background:${m[2]}"></span></div></article>`).join("");
+}
+function isOpen(){
+  try{
+    const p=new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Riga",weekday:"short",hour:"numeric",minute:"numeric",hour12:false}).formatToParts(new Date());
+    const g=t=>p.find(x=>x.type===t).value, wd=g("weekday"), h=+g("hour")+ +g("minute")/60;
+    return (wd==="Sat"||wd==="Sun")?(h>=10&&h<22):(h>=9&&h<21);
+  }catch(e){return true}
+}
+function apply(){
+  document.documentElement.lang=lang;
+  $$("[data-i]").forEach(el=>{el.innerHTML=T[lang][el.dataset.i]});
+  $$(".lang button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.lang===lang));
+  const m=T[lang].marq.map(x=>`<span>${x}</span><b>●</b>`).join("");
+  $("#marq").innerHTML=m+m+m+m;
+  const op=isOpen(),el=$("#open");
+  el.textContent=T[lang][op?"open":"closed"];el.classList.toggle("closed",!op);
+  renderMenu();
+}
+$$(".lang button").forEach(b=>b.addEventListener("click",()=>{lang=b.dataset.lang;apply()}));
+$("#tabs").addEventListener("click",e=>{const b=e.target.closest("[data-tab]");if(b){tab=+b.dataset.tab;renderMenu()}});
+apply();
+
+/* scroll stage */
+const S=[ /* bg, fg, liquid top, liquid bottom */
+ ["#FF4F86","#FFF4E4","#FFE3EA","#FFB3C6"],
+ ["#6B4DFF","#FFF4E4","#E2D8FF","#B9A4FF"],
+ ["#1F7A4D","#FFF4E4","#DDF0B6","#A9D46E"],
+ ["#FFB800","#1B1210","#FFF0B0","#FF9F2E"],
+ ["#3A1F14","#FFF4E4","#EBCFAE","#B9773F"]
+];
+const hex=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
+const mix=(a,b,t)=>{const x=hex(a),y=hex(b);return"rgb("+x.map((v,i)=>Math.round(v+(y[i]-v)*t)).join(",")+")"};
+const stage=$(".stage"),pin=$(".pin"),cupWrap=$("#cupWrap"),scenes=$$(".scene"),pearls=$$(".pearl"),dots=$$(".dots i");
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const N=S.length,nav=$(".nav");
+function frame(){
+  const r=stage.getBoundingClientRect(),vh=window.innerHeight;
+  const p=Math.min(1,Math.max(0,-r.top/(r.height-vh)));
+  const f=p*(N-1),i=Math.min(N-2,Math.floor(f)),t=f-i;
+  let e=Math.min(1,Math.max(0,(t-.3)/.4));e=e*e*(3-2*e);
+  const g=i+e;                      /* eased position: holds on each flavor */
+  const st=pin.style;
+  st.setProperty("--bg",mix(S[i][0],S[i+1][0],e));
+  st.setProperty("--fg",mix(S[i][1],S[i+1][1],e));
+  st.setProperty("--liq",mix(S[i][2],S[i+1][2],e));
+  st.setProperty("--liq2",mix(S[i][3],S[i+1][3],e));
+  stage.style.setProperty("--bg",mix(S[i][0],S[i+1][0],e));
+  const wide=window.innerWidth>820;
+  const shift=wide?window.innerWidth*.22:0;
+  const past=r.bottom<60;nav.classList.toggle("solid",past);nav.style.setProperty("--navfg",mix(S[i][1],S[i+1][1],e));
+  const rot=reduce?0:g*360, sc=1-.16*Math.sin(e*Math.PI);
+  cupWrap.style.transform=`translateX(${shift}px) rotate(${rot}deg) scale(${sc})`;
+  scenes.forEach((s,k)=>{
+    const d=g-k,o=Math.max(0,1-Math.abs(d)*2.4);
+    s.style.opacity=o;s.style.visibility=o<.01?"hidden":"visible";
+    s.style.transform=reduce?"":`translateY(${-d*70}px)`;
+    s.classList.toggle("on",o>.6);
+    const gh=s.querySelector(".ghost");
+    gh.style.transform=`translate(${(-(f-k)*38-4)}vw,-50%)`;
+  });
+  if(!reduce)pearls.forEach(b=>{b.style.transform=`translateY(${-p*b.dataset.s}px)`});
+  const near=Math.round(g);dots.forEach((d,k)=>d.classList.toggle("on",k===near));
+}
+let tick=false;
+function onScroll(){if(!tick){tick=true;requestAnimationFrame(()=>{frame();tick=false})}}
+addEventListener("scroll",onScroll,{passive:true});addEventListener("resize",onScroll);
+frame();
+</script>
+</body>
+</html>
